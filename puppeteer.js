@@ -126,6 +126,7 @@ async function run(url, type, productDetailInfo, callback) {
   try {
     const page = await browser.newPage();
     await spider(page);
+    await page.setDefaultNavigationTimeout(0);
     await page.emulate(chromeOption);
     await page.setRequestInterception(true);
     page.on('request', (req) => {
@@ -264,6 +265,7 @@ const start = async () => {
         console.log('err======>', err);
       }
       console.log('==========>  ', res);
+      process.exit()
     }
   );
 };
