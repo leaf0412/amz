@@ -15,16 +15,16 @@ const Goods = require('./dbs/model/goods');
 const browserOption = {
   headless: true,
   // 延迟
-  // slowMo: 5,
+  slowMo: 5,
   args: [
-    '–disable-gpu', // GPU硬件加速
-    '–disable-dev-shm-usage', // 创建临时文件共享内存
-    '–disable-setuid-sandbox', // uid沙盒
-    '–no-first-run', // 没有设置首页。在启动的时候，就会打开一个空白页面。
-    '–no-sandbox', // 沙盒模式
-    '--disable-accelerated-2d-canvas', // canvas渲染
-    '–no-zygote',
-    '–single-process' // 单进程运行
+    '-disable-gpu', // GPU硬件加速
+    '-disable-dev-shm-usage', // 创建临时文件共享内存
+    '-disable-setuid-sandbox', // uid沙盒
+    '-no-first-run', // 没有设置首页。在启动的时候，就会打开一个空白页面。
+    '-no-sandbox', // 沙盒模式
+    '-disable-accelerated-2d-canvas', // canvas渲染
+    '-no-zygote',
+    '-single-process' // 单进程运行
   ]
 };
 let userAgent = [
@@ -82,8 +82,9 @@ async function getProductsInfo(page, productDetailInfo) {
       let list = [];
       document.querySelectorAll('.zg-item-immersion').forEach((item) => {
         if (item.querySelector('.a-link-normal')) {
+          const productUrl = item.querySelector('.a-link-normal')?.href;
           list.push({
-            link: item.querySelector('.a-link-normal')?.href,
+            link: productUrl,
             stars: item.querySelector(
               '.a-icon-row.a-spacing-none .a-link-normal span.a-icon-alt'
             )?.innerText,
@@ -100,7 +101,7 @@ async function getProductsInfo(page, productDetailInfo) {
     });
     productDetailInfo.push(...productInfo);
   } catch (err) {
-    red(err, 'error');
+    log(red(err, 'error'));
   }
 }
 
@@ -128,7 +129,11 @@ async function run(url, type, productDetailInfo, callback) {
     await page.emulate(chromeOption);
     await page.setRequestInterception(true);
     page.on('request', (req) => {
-      if ([...blockedResourceTypes, ...skippedResources].includes(req.resourceType())) {
+      if (
+        [...blockedResourceTypes, ...skippedResources].includes(
+          req.resourceType()
+        )
+      ) {
         return req.abort();
       }
       return req.continue();
@@ -159,8 +164,9 @@ async function run(url, type, productDetailInfo, callback) {
     callback(null, `${type} 获取数据结束`);
   } catch (err) {
     callback(err);
-    log(red(err));
-  } finally {
+    if (!err.toString().includes('ERR_CONNECTION_TIMED_OUT')) {
+      log(red(err));
+    }
     await browser.close();
   }
 }
@@ -249,7 +255,7 @@ const start = async () => {
   log(orange(`start spider`));
   _async.mapLimit(
     shuffleSort(categoryTotalInfo),
-    4,
+    2,
     (item, callback) => {
       run(item.link, item.name, [], callback);
     },
